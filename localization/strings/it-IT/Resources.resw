@@ -967,7 +967,7 @@ Fallback alla rete NAT.</value>
     <comment>{FixedPlaceholder="{}"}Command line arguments, file names and string inserts should not be translated</comment>
   </data>
   <data name="MessageUninstallNoArguments" xml:space="preserve">
-    <value>{} does not take any arguments. To unregister a distribution, use {} instead.</value>
+    <value>{} non accetta argomenti. Per annullare la registrazione di una distribuzione, usare {}.</value>
     <comment>{FixedPlaceholder="{}"}Command line arguments, file names and string inserts should not be translated</comment>
   </data>
   <data name="MessageUninstallFailed" xml:space="preserve">
@@ -1918,40 +1918,40 @@ Utilizzo:
   wslc --help</value>
     <comment>{Locked="--help"}Command line arguments, file names and string inserts should not be translated</comment>
   </data>
-  <data name="MessageWslaSessionNotFound" xml:space="preserve">
-    <value>Sessione non trovata: '{}'</value>
+  <data name="MessageWslcSessionNotFound" xml:space="preserve">
+    <value>Session not found: '{}'</value>
     <comment>{FixedPlaceholder="{}"}Command line arguments, file names and string inserts should not be translated</comment>
   </data>
   <data name="MessageInvalidIp" xml:space="preserve">
     <value>Indirizzo IP '{}' non valido</value>
     <comment>{FixedPlaceholder="{}"}Command line arguments, file names and string inserts should not be translated</comment>
   </data>
-  <data name="MessageWslaOpenSessionFailed" xml:space="preserve">
-    <value>OpenSessionByName('{}') non riuscito</value>
+  <data name="MessageWslcOpenSessionFailed" xml:space="preserve">
+    <value>OpenSessionByName('{}') failed</value>
     <comment>{FixedPlaceholder="{}"}Command line arguments, file names and string inserts should not be translated</comment>
   </data>
-  <data name="MessageWslaNoSessionsFound" xml:space="preserve">
-    <value>Nessuna sessione WSLA trovata.</value>
+  <data name="MessageWslcNoSessionsFound" xml:space="preserve">
+    <value>No WSLC sessions found.</value>
   </data>
-  <data name="MessageWslaSessionsFound" xml:space="preserve">
-    <value>Trovata {} sessione WSLA {}:</value>
+  <data name="MessageWslcSessionsFound" xml:space="preserve">
+    <value>Found {} WSLC session{}:</value>
     <comment>{FixedPlaceholder="{}"}{FixedPlaceholder="{}"}Command line arguments, file names and string inserts should not be translated</comment>
   </data>
-  <data name="MessageWslaShellExited" xml:space="preserve">
-    <value>{} terminato con: {}</value>
+  <data name="MessageWslcShellExited" xml:space="preserve">
+    <value>{} exited with: {}</value>
     <comment>{FixedPlaceholder="{}"}{FixedPlaceholder="{}"}Command line arguments, file names and string inserts should not be translated</comment>
   </data>
-  <data name="MessageWslaHeaderId" xml:space="preserve">
+  <data name="MessageWslcHeaderId" xml:space="preserve">
     <value>ID</value>
   </data>
-  <data name="MessageWslaHeaderCreatorPid" xml:space="preserve">
-    <value>PID creatore</value>
+  <data name="MessageWslcHeaderCreatorPid" xml:space="preserve">
+    <value>Creator PID</value>
   </data>
-  <data name="MessageWslaHeaderDisplayName" xml:space="preserve">
-    <value>Nome visualizzato</value>
+  <data name="MessageWslcHeaderDisplayName" xml:space="preserve">
+    <value>Display Name</value>
   </data>
-  <data name="MessageWslaUnknownCommand" xml:space="preserve">
-    <value>Comando sconosciuto: '{}'</value>
+  <data name="MessageWslcUnknownCommand" xml:space="preserve">
+    <value>Unknown command: '{}'</value>
     <comment>{FixedPlaceholder="{}"}Command line arguments, file names and string inserts should not be translated</comment>
   </data>
   <data name="WSLCCLI_UnrecognizedCommandError" xml:space="preserve">
@@ -2080,32 +2080,32 @@ Utilizzo:
 Per informazioni sulla privacy di questo prodotto, visita https://aka.ms/privacy.</value>
      <comment>Copyright notice and privacy link</comment>
   </data>
-  <data name="MessageWslaInvalidImage" xml:space="preserve">
-    <value>Immagine non valida: '{}'</value>
+  <data name="MessageWslcInvalidImage" xml:space="preserve">
+    <value>Invalid image: '{}'</value>
     <comment>{FixedPlaceholder="{}"}Command line arguments, file names and string inserts should not be translated</comment>
   </data>
-  <data name="MessageWslaInvalidName" xml:space="preserve">
-    <value>Nome non valido: '{}'</value>
+  <data name="MessageWslcInvalidName" xml:space="preserve">
+    <value>Invalid name: '{}'</value>
     <comment>{FixedPlaceholder="{}"}Command line arguments, file names and string inserts should not be translated</comment>
   </data>
   <data name="MessagePathNotAbsolute" xml:space="preserve">
     <value>Il percorso non è assoluto: '{}'</value>
     <comment>{FixedPlaceholder="{}"}Command line arguments, file names and string inserts should not be translated</comment>
   </data>
-  <data name="MessageWslaVolumeNotFound" xml:space="preserve">
-    <value>Volume non trovato: '{}'</value>
+  <data name="MessageWslcVolumeNotFound" xml:space="preserve">
+    <value>Volume not found: '{}'</value>
     <comment>{FixedPlaceholder="{}"}Command line arguments, file names and string inserts should not be translated</comment>
   </data>
-  <data name="MessageWslaInvalidVolumeOptions" xml:space="preserve">
-    <value>Opzioni di volume non valide: '{}'</value>
+  <data name="MessageWslcInvalidVolumeOptions" xml:space="preserve">
+    <value>Invalid volume options: '{}'</value>
     <comment>{FixedPlaceholder="{}"}Command line arguments, file names and string inserts should not be translated</comment>
   </data>
-  <data name="MessageWslaInvalidVolumeType" xml:space="preserve">
-    <value>Tipo di volume non supportato: '{}'</value>
+  <data name="MessageWslcInvalidVolumeType" xml:space="preserve">
+    <value>Unsupported volume type: '{}'</value>
     <comment>{FixedPlaceholder="{}"}Command line arguments, file names and string inserts should not be translated</comment>
   </data>
-  <data name="MessageWslaVolumeInUse" xml:space="preserve">
-    <value>Il volume '{}' è in uso.</value>
+  <data name="MessageWslcVolumeInUse" xml:space="preserve">
+    <value>Volume '{}' is in use.</value>
     <comment>{FixedPlaceholder="{}"}Command line arguments, file names and string inserts should not be translated</comment>
   </data>
 </root>

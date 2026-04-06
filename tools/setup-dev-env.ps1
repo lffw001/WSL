@@ -89,20 +89,61 @@ $sdkPath = "${env:ProgramFiles(x86)}\Windows Kits\10\Include\10.0.26100.0"
 Check "Windows SDK 26100" (Test-Path $sdkPath) "VS Installer -> Modify -> Individual Components -> Windows 11 SDK (10.0.26100.0)"
 
 # --- NuGet Credential Provider (Azure DevOps feed) ---
+# nuget.exe resolves credential provider plugins using a priority chain:
+#   1. NUGET_NETFX_PLUGIN_PATHS  (highest priority for standalone nuget.exe)
+#   2. NUGET_PLUGIN_PATHS         (general override)
+#   3. %USERPROFILE%\.nuget\plugins\netfx\...  (default)
+# If a higher-priority env var is set but points to a missing file, nuget.exe
+# fails even when the provider is installed at the default location.
 Write-Host ""
 Write-Host "NuGet:" -ForegroundColor White
-$credProviderFound = $false
-if ($env:NUGET_PLUGIN_PATHS)
+
+$defaultNetfx = "${env:USERPROFILE}\.nuget\plugins\netfx\CredentialProvider.Microsoft\CredentialProvider.Microsoft.exe"
+
+# Walk the priority chain to find the path nuget.exe will actually use.
+$effectivePath = $null
+$effectiveSource = $null
+foreach ($entry in @(
+    @{ Var = "NUGET_NETFX_PLUGIN_PATHS"; Val = $env:NUGET_NETFX_PLUGIN_PATHS },
+    @{ Var = "NUGET_PLUGIN_PATHS";       Val = $env:NUGET_PLUGIN_PATHS }
+))
 {
-    # If NUGET_PLUGIN_PATHS is set, NuGet will look there instead of the default location.
-    $credProviderFound = Test-Path $env:NUGET_PLUGIN_PATHS
+    if ($entry.Val)
+    {
+        $effectivePath = $entry.Val
+        $effectiveSource = $entry.Var
+        break
+    }
+}
+if (-not $effectivePath)
+{
+    $effectivePath = $defaultNetfx
+    $effectiveSource = "default"
+}
+
+$providerFound = Test-Path $effectivePath
+$label = "Azure Artifacts Credential Provider"
+if ($effectiveSource -ne "default")
+{
+    $label += " (via $effectiveSource)"
+}
+
+if ($providerFound)
+{
+    Check $label $true ""
+}
+elseif ($effectiveSource -ne "default" -and (Test-Path $defaultNetfx))
+{
+    # Provider is installed at the default location but an env var redirects
+    # nuget.exe to a different path where it doesn't exist.
+    $targetDir = Split-Path $effectivePath -Parent
+    $sourceDir = Split-Path $defaultNetfx -Parent
+    Check $label $false "New-Item -ItemType Directory -Force -Path '$targetDir' | Out-Null; Copy-Item '$sourceDir\*' '$targetDir' -Recurse -Force"
 }
 else
 {
-    $credProviderFound = (Test-Path "${env:USERPROFILE}\.nuget\plugins\netfx\CredentialProvider.Microsoft\CredentialProvider.Microsoft.exe") -or
-        (Test-Path "${env:USERPROFILE}\.nuget\plugins\netcore\CredentialProvider.Microsoft\CredentialProvider.Microsoft.dll")
+    Check $label $false "iex ""& { `$(irm https://aka.ms/install-artifacts-credprovider.ps1) } -AddNetfx"""
 }
-Check "Azure Artifacts Credential Provider" $credProviderFound "iex ""& { `$(irm https://aka.ms/install-artifacts-credprovider.ps1) } -AddNetfx"""
 
 # --- Developer Mode / Symlinks ---
 Write-Host ""

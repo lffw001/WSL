@@ -2,6 +2,8 @@
 
 ## Prerequisites 
 
+You can verify all prerequisites are installed by running `tools\setup-dev-env.ps1`.
+
 The following tools are required to build WSL: 
 
 - CMake >= 3.25

@@ -89,7 +89,7 @@ if ($vsOk)
     Write-Host "Visual Studio Components:" -ForegroundColor White
 
     # Check for specific required components via their markers
-    $clangPath = Join-Path $vsInstall "VC\Tools\Llvm\x64\bin\clang-format.exe"
+    $clangPath = Join-Path $vsInstall "VC\Tools\Llvm\*\bin\clang-format.exe"
     Check "C++ Clang Compiler for Windows" (Test-Path $clangPath) $script:VsInstallFix
 
     $atlPath = Join-Path $vsInstall "VC\Tools\MSVC\*\atlmfc\include\atlbase.h"

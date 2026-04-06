@@ -8,7 +8,7 @@ The following tools are required to build WSL:
 
 - CMake >= 3.25
     - Can be installed with `winget install Kitware.CMake`
-- Visual Studio with the following components (install via [`.vsconfig`](../../.vsconfig) — use VS Installer → More → Import configuration, or `winget install Microsoft.VisualStudio.2022.Community --override "--wait --quiet --config .vsconfig"`):
+- Visual Studio with the following components (install via [`.vsconfig`](https://github.com/microsoft/WSL/blob/master/.vsconfig) — use VS Installer → More → Import configuration, or `winget install Microsoft.VisualStudio.2022.Community --override "--wait --quiet --config .vsconfig"`):
     - Windows SDK 26100
     - MSBuild
     - Universal Windows platform support for v143 build tools (X64 and ARM64)

@@ -47,28 +47,46 @@ $cmakeVersion = $null
 $cmakeOk = $false
 if ($cmake)
 {
-    $cmakeVersion = [version]((cmake --version | Select-Object -First 1) -replace '[^0-9.]', '')
-    $cmakeOk = $cmakeVersion -ge [version]"3.25"
+    try
+    {
+        $cmakeVersion = [version]((cmake --version | Select-Object -First 1) -replace '[^0-9.]', '')
+        $cmakeOk = $cmakeVersion -ge [version]"3.25"
+    }
+    catch
+    {
+        $cmakeVersion = $null
+        $cmakeOk = $false
+    }
 }
 Check "CMake >= 3.25$(if ($cmakeVersion) { " (found $cmakeVersion)" })" $cmakeOk "winget install Kitware.CMake"
 
 # --- Visual Studio ---
 $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
 $vsInstall = $null
+$vsVersion = $null
+$vsOk = $false
 if (Test-Path $vswhere)
 {
-    $vsInstall = & $vswhere -latest -property installationPath 2>$null
+    $vsInstall = (& $vswhere -latest -property installationPath 2>$null | Select-Object -First 1)
+    $vsVersionText = (& $vswhere -latest -property installationVersion 2>$null | Select-Object -First 1)
+    if ($vsInstall) { $vsInstall = $vsInstall.Trim() }
+    if ($vsVersionText)
+    {
+        try
+        {
+            $vsVersion = [version]$vsVersionText.Trim()
+            $vsOk = (-not [string]::IsNullOrWhiteSpace($vsInstall)) -and ($vsVersion.Major -ge 17)
+        }
+        catch {}
+    }
 }
-Check "Visual Studio 2022+" ($null -ne $vsInstall) $script:VsInstallFix
+Check "Visual Studio 2022+$(if ($vsVersion) { " (found $vsVersion)" })" $vsOk $script:VsInstallFix
 
-# --- VS Components (only check if VS is found) ---
-if ($vsInstall)
+# --- VS Components (only check if VS 2022+ is found) ---
+if ($vsOk)
 {
     Write-Host ""
     Write-Host "Visual Studio Components:" -ForegroundColor White
-
-    $installedComponents = @(& $vswhere -latest -property catalog_productLineVersion 2>$null)
-    $vsComponents = & $vswhere -latest -format json 2>$null | ConvertFrom-Json
 
     # Check for specific required components via their markers
     $clangPath = Join-Path $vsInstall "VC\Tools\Llvm\x64\bin\clang-format.exe"
@@ -145,7 +163,7 @@ elseif ($effectiveSource -ne "default" -and (Test-Path $defaultNetfx))
 }
 else
 {
-    Check $label $false "iex ""& { `$(irm https://aka.ms/install-artifacts-credprovider.ps1) } -AddNetfx"""
+    Check $label $false "See https://github.com/microsoft/artifacts-credprovider#installation"
 }
 
 # --- Developer Mode / Symlinks ---

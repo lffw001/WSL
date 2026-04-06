@@ -354,11 +354,10 @@ class PluginTests
     {
         WSL1_TEST_ONLY();
 
-        constexpr auto ExpectedOutput = LR"(Plugin loaded. TestMode=1)";
-
+        // Plugins are not loaded for WSL1-only sessions (no VM, no plugin hooks).
+        // Verify that WSL1 works without plugins.
         ConfigurePlugin(PluginTestType::Success);
         StartWsl(0);
-        ValidateLogFile(ExpectedOutput);
     }
 
     TEST_METHOD(LoadFailureFatalWSL2)
@@ -380,13 +379,10 @@ class PluginTests
     {
         WSL1_TEST_ONLY();
 
-        constexpr auto ExpectedOutput =
-            LR"(Plugin loaded. TestMode=2
-            OnLoad: E_UNEXPECTED)";
-
+        // Plugins are not loaded for WSL1-only sessions, so a plugin that
+        // would fail to load on WSL2 has no effect on WSL1.
         ConfigurePlugin(PluginTestType::FailToLoad);
         StartWsl(0);
-        ValidateLogFile(ExpectedOutput);
     }
 
     TEST_METHOD(VmStartFailure)

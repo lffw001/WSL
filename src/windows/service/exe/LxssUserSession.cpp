@@ -2605,12 +2605,17 @@ std::shared_ptr<LxssRunningInstance> LxssUserSessionImpl::_CreateInstance(_In_op
                 }
 
                 // This needs to be done before plugins are notified because they might try to run a command inside the distribution.
-                m_runningInstances[registration.Id()] = instance;
+                {
+                    std::unique_lock callbackLock(m_callbackLock);
+                    m_runningInstances[registration.Id()] = instance;
+                }
 
                 if (version == LXSS_WSL_VERSION_2)
                 {
-                    auto cleanupOnFailure =
-                        wil::scope_exit_log(WI_DIAGNOSTICS_INFO, [&]() { m_runningInstances.erase(registration.Id()); });
+                    auto cleanupOnFailure = wil::scope_exit_log(WI_DIAGNOSTICS_INFO, [&]() {
+                        std::unique_lock callbackLock(m_callbackLock);
+                        m_runningInstances.erase(registration.Id());
+                    });
                     m_pluginManager.OnDistributionStarted(&m_session, instance->DistributionInformation());
                     cleanupOnFailure.release();
                 }
@@ -3587,7 +3592,10 @@ bool LxssUserSessionImpl::_TerminateInstanceInternal(_In_ LPCGUID DistroGuid, _I
 
                 m_lifetimeManager.RemoveCallback(clientKey);
 
-                m_runningInstances.erase(instance);
+                {
+                    std::unique_lock callbackLock(m_callbackLock);
+                    m_runningInstances.erase(instance);
+                }
 
                 // If the instance that was terminated was a WSL2 instance,
                 // check if the VM is now idle.

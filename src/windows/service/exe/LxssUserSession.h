@@ -820,6 +820,7 @@ private:
 
     /// <summary>
     /// The running utility vm for WSL2 distributions.
+    /// Mutations guarded by m_instanceLock; callback reads guarded by m_callbackLock.
     ///
     _Guarded_by_(m_instanceLock) std::unique_ptr<WslCoreVm> m_utilityVm;
 

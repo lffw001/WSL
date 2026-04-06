@@ -89,6 +89,7 @@ try
     // Winsock to be initialized for recv/send/closesocket to work.
     WSADATA wsaData{};
     THROW_IF_WIN32_ERROR(WSAStartup(MAKEWORD(2, 2), &wsaData));
+    auto cleanupWinsock = wil::scope_exit([] { WSACleanup(); });
 
     // Register the class factory so the service can CoCreateInstance on us.
     DWORD cookie = 0;

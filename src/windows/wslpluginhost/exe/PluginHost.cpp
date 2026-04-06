@@ -126,9 +126,7 @@ try
 
     g_hookThreadId.store(GetCurrentThreadId());
     m_pluginErrorMessage.reset();
-    auto cleanup = wil::scope_exit([&] {
-        g_hookThreadId.store(0);
-    });
+    auto cleanup = wil::scope_exit([&] { g_hookThreadId.store(0); });
 
     HRESULT hr = m_hooks.OnVMStarted(&ctx.info, &settings);
 
@@ -154,9 +152,7 @@ try
     auto ctx = BuildSessionContext(SessionId, UserToken, SidSize, SidData);
 
     g_hookThreadId.store(GetCurrentThreadId());
-    auto cleanup = wil::scope_exit([&] {
-        g_hookThreadId.store(0);
-    });
+    auto cleanup = wil::scope_exit([&] { g_hookThreadId.store(0); });
 
     HRESULT hr = m_hooks.OnVMStopping(&ctx.info);
 
@@ -199,9 +195,7 @@ try
 
     g_hookThreadId.store(GetCurrentThreadId());
     m_pluginErrorMessage.reset();
-    auto cleanup = wil::scope_exit([&] {
-        g_hookThreadId.store(0);
-    });
+    auto cleanup = wil::scope_exit([&] { g_hookThreadId.store(0); });
 
     HRESULT hr = m_hooks.OnDistributionStarted(&ctx.info, &distro);
 
@@ -246,9 +240,7 @@ try
     distro.Version = Version ? Version : L"";
 
     g_hookThreadId.store(GetCurrentThreadId());
-    auto cleanup = wil::scope_exit([&] {
-        g_hookThreadId.store(0);
-    });
+    auto cleanup = wil::scope_exit([&] { g_hookThreadId.store(0); });
 
     HRESULT hr = m_hooks.OnDistributionStopping(&ctx.info, &distro);
 
@@ -283,9 +275,7 @@ try
     distro.Version = Version ? Version : L"";
 
     g_hookThreadId.store(GetCurrentThreadId());
-    auto cleanup = wil::scope_exit([&] {
-        g_hookThreadId.store(0);
-    });
+    auto cleanup = wil::scope_exit([&] { g_hookThreadId.store(0); });
 
     HRESULT hr = m_hooks.OnDistributionRegistered(&ctx.info, &distro);
 
@@ -320,9 +310,7 @@ try
     distro.Version = Version ? Version : L"";
 
     g_hookThreadId.store(GetCurrentThreadId());
-    auto cleanup = wil::scope_exit([&] {
-        g_hookThreadId.store(0);
-    });
+    auto cleanup = wil::scope_exit([&] { g_hookThreadId.store(0); });
 
     HRESULT hr = m_hooks.OnDistributionUnregistered(&ctx.info, &distro);
 

@@ -12,6 +12,9 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $script:Errors = 0
+$script:RepoRoot = (Resolve-Path "$PSScriptRoot\..").Path
+$script:VsConfigPath = Join-Path $script:RepoRoot ".vsconfig"
+$script:VsInstallFix = "Import .vsconfig via VS Installer -> More -> Import configuration, or: winget install Microsoft.VisualStudio.2022.Community --override ""--wait --quiet --config $script:VsConfigPath"""
 
 function Check($Name, $Result, $Fix, [switch]$Optional)
 {
@@ -56,7 +59,7 @@ if (Test-Path $vswhere)
 {
     $vsInstall = & $vswhere -latest -property installationPath 2>$null
 }
-Check "Visual Studio 2022+" ($null -ne $vsInstall) "Install Visual Studio 2022: https://visualstudio.microsoft.com/"
+Check "Visual Studio 2022+" ($null -ne $vsInstall) $script:VsInstallFix
 
 # --- VS Components (only check if VS is found) ---
 if ($vsInstall)
@@ -69,24 +72,24 @@ if ($vsInstall)
 
     # Check for specific required components via their markers
     $clangPath = Join-Path $vsInstall "VC\Tools\Llvm\x64\bin\clang-format.exe"
-    Check "C++ Clang Compiler for Windows" (Test-Path $clangPath) "VS Installer -> Modify -> Individual Components -> C++ Clang Compiler for Windows"
+    Check "C++ Clang Compiler for Windows" (Test-Path $clangPath) $script:VsInstallFix
 
     $atlPath = Get-ChildItem -Path (Join-Path $vsInstall "VC\Tools\MSVC") -Filter "atlbase.h" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-    Check "C++ ATL for latest v143 tools" ($null -ne $atlPath) "VS Installer -> Modify -> Individual Components -> C++ ATL for latest v143 build tools"
+    Check "C++ ATL for latest v143 tools" ($null -ne $atlPath) $script:VsInstallFix
 
     $msbuild = Get-Command "msbuild" -ErrorAction SilentlyContinue
     if (-not $msbuild)
     {
         $msbuild = Get-ChildItem -Path $vsInstall -Filter "MSBuild.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
     }
-    Check "MSBuild" ($null -ne $msbuild) "VS Installer -> Modify -> Individual Components -> MSBuild"
+    Check "MSBuild" ($null -ne $msbuild) $script:VsInstallFix
 }
 
 # --- Windows SDK ---
 Write-Host ""
 Write-Host "Windows SDK:" -ForegroundColor White
 $sdkPath = "${env:ProgramFiles(x86)}\Windows Kits\10\Include\10.0.26100.0"
-Check "Windows SDK 26100" (Test-Path $sdkPath) "VS Installer -> Modify -> Individual Components -> Windows 11 SDK (10.0.26100.0)"
+Check "Windows SDK 26100" (Test-Path $sdkPath) $script:VsInstallFix
 
 # --- NuGet Credential Provider (Azure DevOps feed) ---
 # nuget.exe resolves credential provider plugins using a priority chain:

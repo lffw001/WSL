@@ -310,6 +310,10 @@ private:
 /// </summary>
 class LxssUserSessionImpl
 {
+    // Plugin callbacks arrive on a different COM RPC thread and use m_callbackLock
+    // (shared) instead of m_instanceLock to access m_utilityVm and m_runningInstances.
+    friend class wsl::windows::service::PluginHostCallbackImpl;
+
 public:
     LxssUserSessionImpl(_In_ PSID userSid, _In_ DWORD sessionId, _Inout_ wsl::windows::service::PluginManager& pluginManager);
     virtual ~LxssUserSessionImpl();
@@ -362,11 +366,6 @@ public:
     /// Clears the state of an attached disk in the registry
     /// </summary>
     void ClearDiskStateInRegistry(_In_opt_ LPCWSTR Disk);
-
-    /// <summary>
-    /// Start a process in the root namespace or in a user distribution.
-    /// </summary>
-    HRESULT CreateLinuxProcess(_In_opt_ const GUID* Distro, _In_ LPCSTR Path, _In_ LPCSTR* Arguments, _Out_ SOCKET* socket);
 
     /// <summary>
     /// Enumerates registered distributions, optionally including ones that are
@@ -442,8 +441,6 @@ public:
         _Out_ LPWSTR* MountName);
 
     HRESULT MoveDistribution(_In_ LPCGUID DistroGuid, _In_ LPCWSTR Location);
-
-    HRESULT MountRootNamespaceFolder(_In_ LPCWSTR HostPath, _In_ LPCWSTR GuestPath, _In_ bool ReadOnly, _In_ LPCWSTR Name);
 
     /// <summary>
     /// Registers a distribution.
@@ -533,6 +530,18 @@ public:
     static CreateLxProcessContext s_GetCreateProcessContext(_In_ const GUID& DistroGuid, _In_ bool SystemDistro);
 
 private:
+    /// <summary>
+    /// Plugin callback methods — called from PluginHostCallbackImpl on a COM RPC
+    /// thread during plugin notifications. These acquire m_callbackLock (shared)
+    /// instead of m_instanceLock, preventing _VmTerminate from destroying the VM
+    /// while a callback is in-flight. Access is restricted via friend declaration.
+    /// </summary>
+    _Requires_lock_not_held_(m_instanceLock)
+    HRESULT MountRootNamespaceFolder(_In_ LPCWSTR HostPath, _In_ LPCWSTR GuestPath, _In_ bool ReadOnly, _In_ LPCWSTR Name);
+
+    _Requires_lock_not_held_(m_instanceLock)
+    HRESULT CreateLinuxProcess(_In_opt_ const GUID* Distro, _In_ LPCSTR Path, _In_ LPCSTR* Arguments, _Out_ SOCKET* socket);
+
     /// <summary>
     /// Adds a distro to the list of converting distros.
     /// </summary>
@@ -813,6 +822,17 @@ private:
     /// The running utility vm for WSL2 distributions.
     ///
     _Guarded_by_(m_instanceLock) std::unique_ptr<WslCoreVm> m_utilityVm;
+
+    /// <summary>
+    /// Reader-writer lock protecting m_utilityVm and m_runningInstances for
+    /// plugin callbacks. Callbacks take a shared (read) lock; _VmTerminate takes
+    /// an exclusive (write) lock before destroying the VM, ensuring in-flight
+    /// callbacks complete first.
+    ///
+    /// Lock ordering: m_instanceLock → m_callbackLock (never reverse).
+    /// Callbacks must NEVER acquire m_instanceLock (deadlock with notification thread).
+    /// </summary>
+    std::shared_mutex m_callbackLock;
 
     std::atomic<GUID> m_vmId{GUID_NULL};
 

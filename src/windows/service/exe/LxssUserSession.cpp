@@ -1669,9 +1669,9 @@ HRESULT LxssUserSessionImpl::RegisterDistribution(
             std::lock_guard lock(m_instanceLock);
             _SetDistributionInstalled(lxssKey.get(), registration.Id());
             cleanup.release();
-        }
 
-        _SendDistributionRegisteredEvent(configuration);
+            _SendDistributionRegisteredEvent(configuration);
+        }
 
         _LaunchOOBEIfNeeded();
 
@@ -2604,7 +2604,7 @@ std::shared_ptr<LxssRunningInstance> LxssUserSessionImpl::_CreateInstance(_In_op
                     registration.Write(Property::OsVersion, distributionInfo->Version);
                 }
 
-                // This needs to be done before plugins are notifed because they might try to run a command inside the distribution.
+                // This needs to be done before plugins are notified because they might try to run a command inside the distribution.
                 m_runningInstances[registration.Id()] = instance;
 
                 if (version == LXSS_WSL_VERSION_2)
@@ -3615,7 +3615,10 @@ void LxssUserSessionImpl::_UpdateInit(_In_ const LXSS_DISTRO_CONFIGURATION& Conf
 
 HRESULT LxssUserSessionImpl::MountRootNamespaceFolder(_In_ LPCWSTR HostPath, _In_ LPCWSTR GuestPath, _In_ bool ReadOnly, _In_ LPCWSTR Name)
 {
-    std::lock_guard lock(m_instanceLock);
+    // Shared lock prevents _VmTerminate from destroying the VM while we use it.
+    // Do NOT acquire m_instanceLock — callbacks arrive on a different COM thread
+    // from the notification thread that holds m_instanceLock.
+    std::shared_lock lock(m_callbackLock);
     RETURN_HR_IF(E_NOT_VALID_STATE, !m_utilityVm);
 
     m_utilityVm->MountRootNamespaceFolder(HostPath, GuestPath, ReadOnly, Name);
@@ -3624,7 +3627,9 @@ HRESULT LxssUserSessionImpl::MountRootNamespaceFolder(_In_ LPCWSTR HostPath, _In
 
 HRESULT LxssUserSessionImpl::CreateLinuxProcess(_In_opt_ const GUID* Distro, _In_ LPCSTR Path, _In_ LPCSTR* Arguments, _Out_ SOCKET* Socket)
 {
-    std::lock_guard lock(m_instanceLock);
+    // Shared lock prevents _VmTerminate from destroying the VM or instances
+    // while we use them. See MountRootNamespaceFolder for rationale.
+    std::shared_lock lock(m_callbackLock);
     RETURN_HR_IF(E_NOT_VALID_STATE, !m_utilityVm);
 
     if (Distro == nullptr)
@@ -3871,7 +3876,12 @@ void LxssUserSessionImpl::_VmTerminate()
         m_telemetryThread.join();
     }
 
-    m_utilityVm.reset();
+    // Acquire exclusive callback lock to wait for any in-flight plugin callbacks
+    // (MountRootNamespaceFolder, CreateLinuxProcess) to complete before destroying the VM.
+    {
+        std::unique_lock callbackLock(m_callbackLock);
+        m_utilityVm.reset();
+    }
     m_vmId.store(GUID_NULL);
 
     // Reset the user's token since its lifetime is tied to the VM.

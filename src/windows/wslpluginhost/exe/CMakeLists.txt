@@ -13,7 +13,7 @@ add_dependencies(wslpluginhost
                  common)
 
 target_include_directories(wslpluginhost PRIVATE
-    ${CMAKE_SOURCE_DIR}/src/windows/service/inc/${TARGET_PLATFORM}/${CMAKE_BUILD_TYPE})
+    ${CMAKE_BINARY_DIR}/src/windows/service/inc/${TARGET_PLATFORM}/${CMAKE_BUILD_TYPE})
 
 target_link_libraries(wslpluginhost
                       ${COMMON_LINK_LIBRARIES}

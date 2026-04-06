@@ -13,10 +13,9 @@ Abstract:
     in an isolated process, preventing a buggy or malicious plugin from crashing
     the main WSL service.
 
-    The service spawns this process directly and passes an event handle via
-    --event <handle>. The process registers its COM class factory, signals
-    the event (telling the service it's ready for CoCreateInstance), then waits
-    until all COM references are released before exiting.
+    The host is activated through COM local-server activation. It registers its
+    COM class factory, serves activation requests, and remains alive until all
+    COM server-process references are released, at which point it exits.
 
 --*/
 
@@ -91,22 +90,6 @@ try
     WSADATA wsaData{};
     THROW_IF_WIN32_ERROR(WSAStartup(MAKEWORD(2, 2), &wsaData));
 
-    // Parse --event <handle> from command line.
-    HANDLE readyEventHandle = nullptr;
-    int argc = 0;
-    auto argv = wil::unique_hlocal_ptr<LPWSTR[]>(CommandLineToArgvW(lpCmdLine, &argc));
-    if (argv)
-    {
-        for (int i = 0; i < argc - 1; ++i)
-        {
-            if (_wcsicmp(argv[i], L"--event") == 0)
-            {
-                readyEventHandle = ULongToHandle(wcstoul(argv[i + 1], nullptr, 10));
-                break;
-            }
-        }
-    }
-
     // Register the class factory so the service can CoCreateInstance on us.
     DWORD cookie = 0;
     auto factory = Make<PluginHostFactory>();
@@ -115,13 +98,6 @@ try
     THROW_IF_FAILED(::CoRegisterClassObject(CLSID_WslPluginHost, factory.Get(), CLSCTX_LOCAL_SERVER, REGCLS_SINGLEUSE, &cookie));
 
     auto revokeOnExit = wil::scope_exit([&]() { ::CoRevokeClassObject(cookie); });
-
-    // Signal the service that we're ready for CoCreateInstance.
-    if (readyEventHandle != nullptr && readyEventHandle != INVALID_HANDLE_VALUE)
-    {
-        SetEvent(readyEventHandle);
-        CloseHandle(readyEventHandle);
-    }
 
     // Wait until the COM reference count drops to zero.
     g_exitEvent.wait();

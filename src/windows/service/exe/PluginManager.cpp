@@ -189,6 +189,7 @@ void PluginManager::EnsureInitialized()
 {
     std::call_once(m_initOnce, [this]() {
         m_callback = Microsoft::WRL::Make<PluginHostCallbackImpl>();
+        THROW_IF_NULL_ALLOC(m_callback);
 
         for (auto& e : m_plugins)
         {

@@ -24,7 +24,12 @@ using namespace wsl::windows::pluginhost;
 // Defined in main.cpp — part of the COM local server lifecycle.
 extern void ReleaseComRef();
 
-thread_local PluginHost* wsl::windows::pluginhost::t_activeHost = nullptr;
+PluginHost* wsl::windows::pluginhost::g_pluginHost = nullptr;
+
+// Thread ID of the thread currently dispatching a plugin hook.
+// Only that thread may call PluginError. Using thread ID instead of
+// thread_local to avoid TLS initialization issues across DLL/EXE boundaries.
+static std::atomic<DWORD> g_hookThreadId{0};
 
 PluginHost::~PluginHost()
 {
@@ -47,20 +52,23 @@ try
     m_pluginName = PluginName;
 
     // Validate the plugin signature before loading it.
+    // Keep the file handle open to prevent TOCTOU (swap between validation and load).
+    wil::unique_hfile signatureHandle;
     if constexpr (wsl::shared::OfficialBuild)
     {
-        wsl::windows::common::install::ValidateFileSignature(PluginPath);
+        signatureHandle = wsl::windows::common::install::ValidateFileSignature(PluginPath);
     }
 
     m_module.reset(LoadLibrary(PluginPath));
     THROW_LAST_ERROR_IF_NULL(m_module);
+    signatureHandle.reset(); // Safe to release after LoadLibrary has mapped the DLL
 
     const auto entryPoint =
         reinterpret_cast<WSLPluginAPI_EntryPointV1>(GetProcAddress(m_module.get(), GSL_STRINGIFY(WSLPLUGINAPI_ENTRYPOINTV1)));
     THROW_LAST_ERROR_IF_NULL(entryPoint);
 
     // Build the API vtable that the plugin will use to call back into the service.
-    // The function pointers are static methods on this class that route through t_activeHost.
+    // The function pointers are static methods on this class that route through g_pluginHost.
     static const WSLPluginAPIV1 api = {
         {wsl::shared::VersionMajor, wsl::shared::VersionMinor, wsl::shared::VersionRevision},
         &LocalMountFolder,
@@ -68,11 +76,14 @@ try
         &LocalPluginError,
         &LocalExecuteBinaryInDistribution};
 
-    t_activeHost = this;
-    auto cleanup = wil::scope_exit([&] { t_activeHost = nullptr; });
+    g_pluginHost = this;
     HRESULT hr = entryPoint(&api, &m_hooks);
 
-    RETURN_IF_FAILED_MSG(hr, "Plugin entry point failed: '%ls'", PluginPath);
+    if (FAILED(hr))
+    {
+        g_pluginHost = nullptr;
+        RETURN_HR_MSG(hr, "Plugin entry point failed: '%ls'", PluginPath);
+    }
 
     return S_OK;
 }
@@ -84,7 +95,7 @@ try
     RETURN_HR_IF(E_POINTER, ProcessHandle == nullptr);
     *ProcessHandle = nullptr;
 
-    wil::unique_handle process(OpenProcess(PROCESS_ALL_ACCESS, FALSE, GetCurrentProcessId()));
+    wil::unique_handle process(OpenProcess(PROCESS_SET_QUOTA | PROCESS_TERMINATE, FALSE, GetCurrentProcessId()));
     RETURN_LAST_ERROR_IF_NULL(process);
 
     // COM's system_handle(sh_process) marshaling will duplicate this into the caller's process.
@@ -113,12 +124,10 @@ try
     WSLVmCreationSettings settings{};
     settings.CustomConfigurationFlags = static_cast<WSLUserConfiguration>(CustomConfigurationFlags);
 
-    t_activeHost = this;
-    m_inHookCall = true;
+    g_hookThreadId.store(GetCurrentThreadId());
     m_pluginErrorMessage.reset();
     auto cleanup = wil::scope_exit([&] {
-        m_inHookCall = false;
-        t_activeHost = nullptr;
+        g_hookThreadId.store(0);
     });
 
     HRESULT hr = m_hooks.OnVMStarted(&ctx.info, &settings);
@@ -144,11 +153,9 @@ try
 
     auto ctx = BuildSessionContext(SessionId, UserToken, SidSize, SidData);
 
-    t_activeHost = this;
-    m_inHookCall = true;
+    g_hookThreadId.store(GetCurrentThreadId());
     auto cleanup = wil::scope_exit([&] {
-        m_inHookCall = false;
-        t_activeHost = nullptr;
+        g_hookThreadId.store(0);
     });
 
     HRESULT hr = m_hooks.OnVMStopping(&ctx.info);
@@ -190,12 +197,10 @@ try
     distro.Flavor = Flavor ? Flavor : L"";
     distro.Version = Version ? Version : L"";
 
-    t_activeHost = this;
-    m_inHookCall = true;
+    g_hookThreadId.store(GetCurrentThreadId());
     m_pluginErrorMessage.reset();
     auto cleanup = wil::scope_exit([&] {
-        m_inHookCall = false;
-        t_activeHost = nullptr;
+        g_hookThreadId.store(0);
     });
 
     HRESULT hr = m_hooks.OnDistributionStarted(&ctx.info, &distro);
@@ -240,11 +245,9 @@ try
     distro.Flavor = Flavor ? Flavor : L"";
     distro.Version = Version ? Version : L"";
 
-    t_activeHost = this;
-    m_inHookCall = true;
+    g_hookThreadId.store(GetCurrentThreadId());
     auto cleanup = wil::scope_exit([&] {
-        m_inHookCall = false;
-        t_activeHost = nullptr;
+        g_hookThreadId.store(0);
     });
 
     HRESULT hr = m_hooks.OnDistributionStopping(&ctx.info, &distro);
@@ -279,11 +282,9 @@ try
     distro.Flavor = Flavor ? Flavor : L"";
     distro.Version = Version ? Version : L"";
 
-    t_activeHost = this;
-    m_inHookCall = true;
+    g_hookThreadId.store(GetCurrentThreadId());
     auto cleanup = wil::scope_exit([&] {
-        m_inHookCall = false;
-        t_activeHost = nullptr;
+        g_hookThreadId.store(0);
     });
 
     HRESULT hr = m_hooks.OnDistributionRegistered(&ctx.info, &distro);
@@ -318,11 +319,9 @@ try
     distro.Flavor = Flavor ? Flavor : L"";
     distro.Version = Version ? Version : L"";
 
-    t_activeHost = this;
-    m_inHookCall = true;
+    g_hookThreadId.store(GetCurrentThreadId());
     auto cleanup = wil::scope_exit([&] {
-        m_inHookCall = false;
-        t_activeHost = nullptr;
+        g_hookThreadId.store(0);
     });
 
     HRESULT hr = m_hooks.OnDistributionUnregistered(&ctx.info, &distro);
@@ -354,18 +353,18 @@ PluginHost::SessionContext PluginHost::BuildSessionContext(DWORD SessionId, HAND
 
 HRESULT CALLBACK PluginHost::LocalMountFolder(WSLSessionId Session, LPCWSTR WindowsPath, LPCWSTR LinuxPath, BOOL ReadOnly, LPCWSTR Name)
 {
-    if (t_activeHost == nullptr || t_activeHost->m_callback == nullptr)
+    if (g_pluginHost == nullptr || g_pluginHost->m_callback == nullptr)
     {
         return E_UNEXPECTED;
     }
 
-    auto hr = t_activeHost->m_callback->MountFolder(Session, WindowsPath, LinuxPath, ReadOnly, Name);
+    auto hr = g_pluginHost->m_callback->MountFolder(Session, WindowsPath, LinuxPath, ReadOnly, Name);
     return hr;
 }
 
 HRESULT CALLBACK PluginHost::LocalExecuteBinary(WSLSessionId Session, LPCSTR Path, LPCSTR* Arguments, SOCKET* Socket)
 {
-    if (t_activeHost == nullptr || t_activeHost->m_callback == nullptr)
+    if (g_pluginHost == nullptr || g_pluginHost->m_callback == nullptr)
     {
         return E_UNEXPECTED;
     }
@@ -381,7 +380,7 @@ HRESULT CALLBACK PluginHost::LocalExecuteBinary(WSLSessionId Session, LPCSTR Pat
     }
 
     HANDLE socketResult = nullptr;
-    HRESULT hr = t_activeHost->m_callback->ExecuteBinary(Session, Path, count, Arguments, &socketResult);
+    HRESULT hr = g_pluginHost->m_callback->ExecuteBinary(Session, Path, count, Arguments, &socketResult);
 
     if (SUCCEEDED(hr))
     {
@@ -390,7 +389,10 @@ HRESULT CALLBACK PluginHost::LocalExecuteBinary(WSLSessionId Session, LPCSTR Pat
     }
     else if (socketResult != nullptr)
     {
-        LOG_IF_WIN32_ERROR(closesocket(reinterpret_cast<SOCKET>(socketResult)));
+        if (closesocket(reinterpret_cast<SOCKET>(socketResult)) == SOCKET_ERROR)
+        {
+            LOG_WIN32(WSAGetLastError());
+        }
     }
 
     return hr;
@@ -398,7 +400,7 @@ HRESULT CALLBACK PluginHost::LocalExecuteBinary(WSLSessionId Session, LPCSTR Pat
 
 HRESULT CALLBACK PluginHost::LocalPluginError(LPCWSTR UserMessage)
 {
-    if (t_activeHost == nullptr)
+    if (g_pluginHost == nullptr)
     {
         // Not on a hook thread — PluginError must only be called
         // synchronously from within OnVMStarted/OnDistributionStarted.
@@ -406,17 +408,17 @@ HRESULT CALLBACK PluginHost::LocalPluginError(LPCWSTR UserMessage)
     }
 
     RETURN_HR_IF(E_INVALIDARG, UserMessage == nullptr);
-    RETURN_HR_IF(E_ILLEGAL_METHOD_CALL, !t_activeHost->m_inHookCall);
-    RETURN_HR_IF(E_ILLEGAL_STATE_CHANGE, t_activeHost->m_pluginErrorMessage.has_value());
+    RETURN_HR_IF(E_ILLEGAL_METHOD_CALL, GetCurrentThreadId() != g_hookThreadId.load());
+    RETURN_HR_IF(E_ILLEGAL_STATE_CHANGE, g_pluginHost->m_pluginErrorMessage.has_value());
 
     // Store locally — returned to service alongside the hook HRESULT.
-    t_activeHost->m_pluginErrorMessage.emplace(UserMessage);
+    g_pluginHost->m_pluginErrorMessage.emplace(UserMessage);
     return S_OK;
 }
 
 HRESULT CALLBACK PluginHost::LocalExecuteBinaryInDistribution(WSLSessionId Session, const GUID* Distro, LPCSTR Path, LPCSTR* Arguments, SOCKET* Socket)
 {
-    if (t_activeHost == nullptr || t_activeHost->m_callback == nullptr)
+    if (g_pluginHost == nullptr || g_pluginHost->m_callback == nullptr)
     {
         return E_UNEXPECTED;
     }
@@ -433,7 +435,7 @@ HRESULT CALLBACK PluginHost::LocalExecuteBinaryInDistribution(WSLSessionId Sessi
     }
 
     HANDLE socketResult = nullptr;
-    HRESULT hr = t_activeHost->m_callback->ExecuteBinaryInDistribution(Session, Distro, Path, count, Arguments, &socketResult);
+    HRESULT hr = g_pluginHost->m_callback->ExecuteBinaryInDistribution(Session, Distro, Path, count, Arguments, &socketResult);
 
     if (SUCCEEDED(hr))
     {
@@ -441,7 +443,10 @@ HRESULT CALLBACK PluginHost::LocalExecuteBinaryInDistribution(WSLSessionId Sessi
     }
     else if (socketResult != nullptr)
     {
-        LOG_IF_WIN32_ERROR(closesocket(reinterpret_cast<SOCKET>(socketResult)));
+        if (closesocket(reinterpret_cast<SOCKET>(socketResult)) == SOCKET_ERROR)
+        {
+            LOG_WIN32(WSAGetLastError());
+        }
     }
 
     return hr;

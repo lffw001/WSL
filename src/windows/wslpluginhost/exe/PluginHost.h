@@ -119,11 +119,12 @@ private:
 
     // Error message captured by LocalPluginError during hook execution
     std::optional<std::wstring> m_pluginErrorMessage;
-    bool m_inHookCall{false};
 };
 
-// Thread-local pointer to the active PluginHost instance, used by the static
-// LocalXxx stubs to route calls to the correct instance.
-extern thread_local PluginHost* t_activeHost;
+// Process-wide pointer to the single PluginHost instance. Safe because
+// REGCLS_SINGLEUSE guarantees one PluginHost per wslpluginhost.exe process.
+// This allows plugin DLLs to call API functions from any thread, not just
+// the thread dispatching the current hook.
+extern PluginHost* g_pluginHost;
 
 } // namespace wsl::windows::pluginhost

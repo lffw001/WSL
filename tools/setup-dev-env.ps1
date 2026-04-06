@@ -61,26 +61,43 @@ if ($cmake)
 Check "CMake >= 3.25$(if ($cmakeVersion) { " (found $cmakeVersion)" })" $cmakeOk "winget install Kitware.CMake"
 
 # --- Visual Studio ---
+# Mirror CMakeLists.txt: prefer VS2022 [17.0,18.0) to keep clang-format
+# aligned with pipeline expectations. Fall back to VS2026 [18.0,19.0) with a warning.
 $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
 $vsInstall = $null
 $vsVersion = $null
 $vsOk = $false
+$vsWarning = $null
 if (Test-Path $vswhere)
 {
-    $vsInstall = (& $vswhere -latest -property installationPath 2>$null | Select-Object -First 1)
-    $vsVersionText = (& $vswhere -latest -property installationVersion 2>$null | Select-Object -First 1)
+    # Try VS2022 first
+    $vsInstall = (& $vswhere -version "[17.0,18.0)" -products * -latest -property installationPath -prerelease 2>$null | Select-Object -First 1)
+    $vsVersionText = (& $vswhere -version "[17.0,18.0)" -products * -latest -property installationVersion -prerelease 2>$null | Select-Object -First 1)
+
+    if (-not $vsInstall)
+    {
+        # Fall back to VS2026
+        $vsInstall = (& $vswhere -version "[18.0,19.0)" -products * -latest -property installationPath -prerelease 2>$null | Select-Object -First 1)
+        $vsVersionText = (& $vswhere -version "[18.0,19.0)" -products * -latest -property installationVersion -prerelease 2>$null | Select-Object -First 1)
+        if ($vsInstall) { $vsWarning = "VS 2022 not found; using VS 2026. clang-format output may differ from pipeline expectations." }
+    }
+
     if ($vsInstall) { $vsInstall = $vsInstall.Trim() }
     if ($vsVersionText)
     {
         try
         {
             $vsVersion = [version]$vsVersionText.Trim()
-            $vsOk = (-not [string]::IsNullOrWhiteSpace($vsInstall)) -and ($vsVersion.Major -ge 17)
+            $vsOk = -not [string]::IsNullOrWhiteSpace($vsInstall)
         }
         catch {}
     }
 }
 Check "Visual Studio 2022+$(if ($vsVersion) { " (found $vsVersion)" })" $vsOk $script:VsInstallFix
+if ($vsWarning)
+{
+    Write-Host "    WARNING: $vsWarning" -ForegroundColor DarkYellow
+}
 
 # --- VS Components (only check if VS 2022+ is found) ---
 if ($vsOk)

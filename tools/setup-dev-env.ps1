@@ -14,7 +14,7 @@ $ErrorActionPreference = "Stop"
 $script:Errors = 0
 $script:RepoRoot = (Resolve-Path "$PSScriptRoot\..").Path
 $script:VsConfigPath = Join-Path $script:RepoRoot ".vsconfig"
-$script:VsInstallFix = "Import .vsconfig via VS Installer -> More -> Import configuration, or: winget install Microsoft.VisualStudio.2022.Community --override ""--wait --quiet --config $script:VsConfigPath"""
+$script:VsInstallFix = "Import .vsconfig via VS Installer -> More -> Import configuration, or: winget install Microsoft.VisualStudio.2022.Community --override ""--wait --quiet --config '$script:VsConfigPath'"""
 
 function Check($Name, $Result, $Fix, [switch]$Optional)
 {
@@ -92,15 +92,17 @@ if ($vsOk)
     $clangPath = Join-Path $vsInstall "VC\Tools\Llvm\x64\bin\clang-format.exe"
     Check "C++ Clang Compiler for Windows" (Test-Path $clangPath) $script:VsInstallFix
 
-    $atlPath = Get-ChildItem -Path (Join-Path $vsInstall "VC\Tools\MSVC") -Filter "atlbase.h" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-    Check "C++ ATL for latest v143 tools" ($null -ne $atlPath) $script:VsInstallFix
+    $atlPath = Join-Path $vsInstall "VC\Tools\MSVC\*\atlmfc\include\atlbase.h"
+    Check "C++ ATL for latest v143 tools" (Test-Path $atlPath) $script:VsInstallFix
 
     $msbuild = Get-Command "msbuild" -ErrorAction SilentlyContinue
     if (-not $msbuild)
     {
-        $msbuild = Get-ChildItem -Path $vsInstall -Filter "MSBuild.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+        $msbuildPath = Join-Path $vsInstall "MSBuild\Current\Bin\MSBuild.exe"
+        $msbuildAmd64 = Join-Path $vsInstall "MSBuild\Current\Bin\amd64\MSBuild.exe"
+        $msbuild = (Test-Path $msbuildPath) -or (Test-Path $msbuildAmd64)
     }
-    Check "MSBuild" ($null -ne $msbuild) $script:VsInstallFix
+    Check "MSBuild" ($null -ne $msbuild -and $msbuild) $script:VsInstallFix
 }
 
 # --- Windows SDK ---

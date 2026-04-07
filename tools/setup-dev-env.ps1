@@ -43,9 +43,9 @@ $vsInstallPath = $null
 $vsProductId = $null
 if (Test-Path $vswhere)
 {
-    $vsInstallPath = (& $vswhere -version "[17.0,18.0)" -products * -latest -property installationPath -prerelease 2>$null |
+    $vsInstallPath = (& $vswhere -version "[17.0,18.0)" -products * -latest -property installationPath 2>$null |
         Select-Object -First 1)
-    $vsProductId = (& $vswhere -version "[17.0,18.0)" -products * -latest -property productId -prerelease 2>$null |
+    $vsProductId = (& $vswhere -version "[17.0,18.0)" -products * -latest -property productId 2>$null |
         Select-Object -First 1)
 
     if ($vsInstallPath) { $vsInstallPath = $vsInstallPath.Trim() }
@@ -79,7 +79,7 @@ if ($vsInstallPath)
 else
 {
     Write-Host "  No VS 2022 installation found. Installing Community edition..." -ForegroundColor Yellow
-    winget install Microsoft.VisualStudio.2022.Community --override "--wait --quiet --config `"$vsConfigPath`""
+    winget install Microsoft.VisualStudio.2022.Community --accept-package-agreements --accept-source-agreements --override "--wait --quiet --config `"$vsConfigPath`""
     if ($LASTEXITCODE -ne 0)
     {
         Write-Host "  VS installation failed." -ForegroundColor Red

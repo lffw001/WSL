@@ -20,7 +20,7 @@ If you prefer to install prerequisites manually:
 - Visual Studio 2022 with the required components:
     - Use VS Installer → More → Import configuration and select [`.vsconfig`](https://github.com/microsoft/WSL/blob/master/.vsconfig)
     - Or: `winget install Microsoft.VisualStudio.2022.Community --override "--wait --quiet --config .vsconfig"`
-- Enable [Developer Mode](https://learn.microsoft.com/en-us/windows/apps/get-started/enable-your-device-for-development) in Windows Settings (required for symbolic link support)
+- Enable [Developer Mode](https://learn.microsoft.com/en-us/windows/apps/get-started/enable-your-device-for-development) in Windows Settings, or run builds with Administrator privileges (required for symbolic link support)
 
 </details>
 

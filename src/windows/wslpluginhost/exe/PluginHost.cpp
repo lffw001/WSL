@@ -34,6 +34,8 @@ static std::atomic<DWORD> g_hookThreadId{0};
 PluginHost::~PluginHost()
 {
     // Module unloads automatically via wil::unique_hmodule destructor.
+    // g_pluginHost is not cleared here — the COM ref count reaching zero means
+    // no hooks are in-flight, and the process is about to exit (REGCLS_SINGLEUSE).
 
     // Decrement the COM server reference count. When it reaches zero,
     // the process will exit. Matches AddComRef() in PluginHostFactory::CreateInstance.
@@ -113,6 +115,7 @@ STDMETHODIMP PluginHost::OnVMStarted(
     _Outptr_result_maybenull_ LPWSTR* ErrorMessage)
 try
 {
+    RETURN_HR_IF(E_POINTER, ErrorMessage == nullptr);
     *ErrorMessage = nullptr;
 
     if (m_hooks.OnVMStarted == nullptr)
@@ -175,6 +178,7 @@ STDMETHODIMP PluginHost::OnDistributionStarted(
     _Outptr_result_maybenull_ LPWSTR* ErrorMessage)
 try
 {
+    RETURN_HR_IF(E_POINTER, ErrorMessage == nullptr);
     *ErrorMessage = nullptr;
 
     if (m_hooks.OnDistributionStarted == nullptr)
@@ -357,6 +361,8 @@ HRESULT CALLBACK PluginHost::LocalExecuteBinary(WSLSessionId Session, LPCSTR Pat
         return E_UNEXPECTED;
     }
 
+    RETURN_HR_IF(E_POINTER, Socket == nullptr);
+
     // Count arguments (NULL-terminated array)
     DWORD count = 0;
     if (Arguments != nullptr)
@@ -412,6 +418,7 @@ HRESULT CALLBACK PluginHost::LocalExecuteBinaryInDistribution(WSLSessionId Sessi
     }
 
     RETURN_HR_IF(E_INVALIDARG, Distro == nullptr);
+    RETURN_HR_IF(E_POINTER, Socket == nullptr);
 
     DWORD count = 0;
     if (Arguments != nullptr)

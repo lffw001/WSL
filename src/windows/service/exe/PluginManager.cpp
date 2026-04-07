@@ -53,6 +53,7 @@ STDMETHODIMP PluginHostCallbackImpl::ExecuteBinary(
     _In_ DWORD SessionId, _In_ LPCSTR Path, _In_ DWORD ArgumentCount, _In_reads_opt_(ArgumentCount) LPCSTR* Arguments, _Out_ HANDLE* Socket)
 try
 {
+    RETURN_HR_IF(E_POINTER, Socket == nullptr);
     *Socket = nullptr;
 
     WSL_LOG("PluginCallbackExecuteBinaryBegin", TraceLoggingValue(Path, "Path"), TraceLoggingValue(SessionId, "SessionId"));
@@ -97,6 +98,7 @@ STDMETHODIMP PluginHostCallbackImpl::ExecuteBinaryInDistribution(
     _Out_ HANDLE* Socket)
 try
 {
+    RETURN_HR_IF(E_POINTER, Socket == nullptr);
     *Socket = nullptr;
     RETURN_HR_IF(E_INVALIDARG, DistributionId == nullptr);
 
@@ -131,6 +133,7 @@ try
     // The host captures the message and returns it alongside the hook HRESULT.
     // This callback exists only for completeness — it should not be called
     // directly over COM since the host handles it locally.
+    RETURN_HR_IF(E_INVALIDARG, UserMessage == nullptr);
     WSL_LOG_TELEMETRY("PluginError", PDT_ProductAndServicePerformance, TraceLoggingValue(UserMessage, "Message"));
     return S_OK;
 }

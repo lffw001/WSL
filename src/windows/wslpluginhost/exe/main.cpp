@@ -84,6 +84,7 @@ try
     auto cleanupTracing = wil::scope_exit_log(WI_DIAGNOSTICS_INFO, [] { WslTraceLoggingUninitialize(); });
 
     auto coInit = wil::CoInitializeEx(COINIT_MULTITHREADED);
+    wsl::windows::common::wslutil::CoInitializeSecurity();
 
     // Initialize Winsock — plugins receive sockets from ExecuteBinary and need
     // Winsock to be initialized for recv/send/closesocket to work.

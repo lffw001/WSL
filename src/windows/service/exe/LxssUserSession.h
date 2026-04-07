@@ -804,8 +804,9 @@ private:
 
     /// <summary>
     /// Contains the currently running utility VM's.
+    /// Mutations guarded by m_instanceLock; callback reads guarded by m_callbackLock.
     /// </summary>
-    _Guarded_by_(m_instanceLock) std::map<GUID, std::shared_ptr<LxssRunningInstance>, wsl::windows::common::helpers::GuidLess> m_runningInstances;
+    _Guarded_by_(m_callbackLock) std::map<GUID, std::shared_ptr<LxssRunningInstance>, wsl::windows::common::helpers::GuidLess> m_runningInstances;
 
     /// <summary>
     /// Contains a list of instances that have been terminated.
@@ -821,8 +822,8 @@ private:
     /// <summary>
     /// The running utility vm for WSL2 distributions.
     /// Mutations guarded by m_instanceLock; callback reads guarded by m_callbackLock.
-    ///
-    _Guarded_by_(m_instanceLock) std::unique_ptr<WslCoreVm> m_utilityVm;
+    /// </summary>
+    _Guarded_by_(m_callbackLock) std::unique_ptr<WslCoreVm> m_utilityVm;
 
     /// <summary>
     /// Reader-writer lock protecting m_utilityVm and m_runningInstances for

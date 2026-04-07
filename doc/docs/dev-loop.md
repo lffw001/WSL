@@ -2,15 +2,13 @@
 
 ## Prerequisites 
 
-All prerequisites can be installed automatically with a single command:
+All prerequisites can be installed automatically by running:
 
 ```
-winget configure .config\configuration.winget
+tools\setup-dev-env.ps1
 ```
 
-This installs CMake, Visual Studio 2022 with the required components (via [`.vsconfig`](https://github.com/microsoft/WSL/blob/master/.vsconfig)), and enables Developer Mode. The configuration is idempotent — safe to run multiple times.
-
-See [WinGet Configuration](https://learn.microsoft.com/windows/package-manager/configuration/) for more details.
+This enables Developer Mode, installs CMake (via [WinGet Configuration](https://learn.microsoft.com/windows/package-manager/configuration/)), and ensures Visual Studio 2022 has the required workloads from [`.vsconfig`](https://github.com/microsoft/WSL/blob/master/.vsconfig). If VS 2022 is already installed (any edition), the script adds missing components to your existing installation. If no VS 2022 is found, it installs Community edition.
 
 <details>
 <summary>Manual installation</summary>

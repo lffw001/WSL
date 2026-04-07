@@ -75,7 +75,7 @@ public:
     }
 };
 
-int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR lpCmdLine, _In_ int)
+int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int)
 try
 {
     wsl::windows::common::wslutil::ConfigureCrt();

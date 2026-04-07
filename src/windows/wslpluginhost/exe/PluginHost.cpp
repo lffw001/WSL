@@ -33,9 +33,14 @@ static std::atomic<DWORD> g_hookThreadId{0};
 
 PluginHost::~PluginHost()
 {
+    // Clear globally reachable state so late plugin API calls fail with
+    // E_UNEXPECTED instead of dereferencing freed memory.
+    if (g_pluginHost == this)
+    {
+        g_pluginHost = nullptr;
+    }
+
     // Module unloads automatically via wil::unique_hmodule destructor.
-    // g_pluginHost is not cleared here — the COM ref count reaching zero means
-    // no hooks are in-flight, and the process is about to exit (REGCLS_SINGLEUSE).
 
     // Decrement the COM server reference count. When it reaches zero,
     // the process will exit. Matches AddComRef() in PluginHostFactory::CreateInstance.

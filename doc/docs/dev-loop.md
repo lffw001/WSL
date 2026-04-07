@@ -2,24 +2,29 @@
 
 ## Prerequisites 
 
-You can verify all prerequisites are installed by running `tools\setup-dev-env.ps1`.
+All prerequisites can be installed automatically with a single command:
 
-The following tools are required to build WSL: 
+```
+winget configure .config\configuration.winget
+```
+
+This installs CMake, Visual Studio 2022 with the required components (via [`.vsconfig`](https://github.com/microsoft/WSL/blob/master/.vsconfig)), and enables Developer Mode. The configuration is idempotent — safe to run multiple times.
+
+See [WinGet Configuration](https://learn.microsoft.com/windows/package-manager/configuration/) for more details.
+
+<details>
+<summary>Manual installation</summary>
+
+If you prefer to install prerequisites manually:
 
 - CMake >= 3.25
     - Can be installed with `winget install Kitware.CMake`
-- Visual Studio with the following components (install via [`.vsconfig`](https://github.com/microsoft/WSL/blob/master/.vsconfig) — use VS Installer → More → Import configuration, or `winget install Microsoft.VisualStudio.2022.Community --override "--wait --quiet --config .vsconfig"`):
-    - Windows SDK 26100
-    - MSBuild
-    - Universal Windows platform support for v143 build tools (X64 and ARM64)
-    - MSVC v143 - VS 2022 C++ ARM64 build tools (Latest + Spectre) (X64 and ARM64)
-    - C++ core features
-    - C++ ATL for latest v143 tools (X64 and ARM64)
-    - C++ Clang compiler for Windows
-    - .NET desktop development
-    - .NET WinUI app development tools
+- Visual Studio 2022 with the required components:
+    - Use VS Installer → More → Import configuration and select [`.vsconfig`](https://github.com/microsoft/WSL/blob/master/.vsconfig)
+    - Or: `winget install Microsoft.VisualStudio.2022.Community --override "--wait --quiet --config .vsconfig"`
+- Enable [Developer Mode](https://learn.microsoft.com/en-us/windows/apps/get-started/enable-your-device-for-development) in Windows Settings (required for symbolic link support)
 
-- Building WSL requires support for symbolic links. To ensure this capability, enable [Developer Mode](https://learn.microsoft.com/en-us/windows/apps/get-started/enable-your-device-for-development) in Windows Settings or execute the build process with Administrator privileges.
+</details>
 
 ### ARM64 development
 

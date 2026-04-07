@@ -47,17 +47,27 @@ if (Test-Path $vswhere)
         Select-Object -First 1)
     $vsProductId = (& $vswhere -version "[17.0,18.0)" -products * -latest -property productId -prerelease 2>$null |
         Select-Object -First 1)
+
+    if ($vsInstallPath) { $vsInstallPath = $vsInstallPath.Trim() }
+    if ($vsProductId) { $vsProductId = $vsProductId.Trim() }
 }
 
 if ($vsInstallPath)
 {
-    $vsInstallPath = $vsInstallPath.Trim()
-    $vsProductId = $vsProductId.Trim()
     Write-Host "  Found $vsProductId at $vsInstallPath" -ForegroundColor Green
     Write-Host "  Installing required components from .vsconfig..." -ForegroundColor White
 
+    # setup.exe modify doesn't support --config; parse .vsconfig and pass --add for each component.
+    $vsConfig = Get-Content $vsConfigPath -Raw | ConvertFrom-Json
+    $addArgs = @("modify", "--installPath", $vsInstallPath, "--quiet", "--wait")
+    foreach ($component in $vsConfig.components)
+    {
+        $addArgs += "--add"
+        $addArgs += $component
+    }
+
     $setup = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\setup.exe"
-    & $setup modify --installPath $vsInstallPath --config $vsConfigPath --quiet --wait
+    & $setup @addArgs
     if ($LASTEXITCODE -ne 0)
     {
         Write-Host "  VS component installation failed (exit code $LASTEXITCODE)." -ForegroundColor Red

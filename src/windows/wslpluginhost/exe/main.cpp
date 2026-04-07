@@ -54,7 +54,9 @@ public:
         RETURN_IF_NULL_ALLOC(host);
 
         AddComRef();
+        auto releaseOnFailure = wil::scope_exit([] { ReleaseComRef(); });
         RETURN_IF_FAILED(host.CopyTo(riid, ppCreated));
+        releaseOnFailure.release();
         return S_OK;
     }
     CATCH_RETURN();

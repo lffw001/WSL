@@ -17,6 +17,7 @@ target_include_directories(wslpluginhost PRIVATE
 
 target_link_libraries(wslpluginhost
                       ${COMMON_LINK_LIBRARIES}
+                      ${MSI_LINK_LIBRARIES}
                       common
                       ole32.lib)
 

@@ -1669,9 +1669,9 @@ HRESULT LxssUserSessionImpl::RegisterDistribution(
             std::lock_guard lock(m_instanceLock);
             _SetDistributionInstalled(lxssKey.get(), registration.Id());
             cleanup.release();
-
-            _SendDistributionRegisteredEvent(configuration);
         }
+
+        _SendDistributionRegisteredEvent(configuration);
 
         _LaunchOOBEIfNeeded();
 

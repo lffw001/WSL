@@ -1,11 +1,11 @@
 # yaml-language-server: $schema=https://aka.ms/configuration-dsc-schema/0.2
 # Reference: https://github.com/microsoft/WSL/blob/master/doc/docs/dev-loop.md
 #
-# Usage: winget configure -f .config/configuration.winget
+# Usage: winget configure -f .config/configuration.vsProfessional.winget
 #
-# This is the default configuration (VS Community). For other editions use:
-#   .config/configuration.vsProfessional.winget
-#   .config/configuration.vsEnterprise.winget
+# Visual Studio 2022 Professional edition. For other editions use:
+#   .config/configuration.winget                (Community, default)
+#   .config/configuration.vsEnterprise.winget   (Enterprise)
 properties:
   resources:
     - resource: Microsoft.Windows.Settings/WindowsSettings
@@ -26,10 +26,10 @@ properties:
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: vsPackage
       directives:
-        description: Install Visual Studio 2022 Community
+        description: Install Visual Studio 2022 Professional
         securityContext: elevated
       settings:
-        id: Microsoft.VisualStudio.2022.Community
+        id: Microsoft.VisualStudio.2022.Professional
         source: winget
     - resource: Microsoft.VisualStudio.DSC/VSComponents
       dependsOn:
@@ -39,7 +39,7 @@ properties:
         allowPrerelease: true
         securityContext: elevated
       settings:
-        productId: Microsoft.VisualStudio.Product.Community
+        productId: Microsoft.VisualStudio.Product.Professional
         channelId: VisualStudio.17.Release
         vsConfigFile: '${WinGetConfigRoot}\..\.vsconfig'
   configurationVersion: 0.2.0

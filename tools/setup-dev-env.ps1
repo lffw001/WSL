@@ -62,7 +62,7 @@ Write-Host "Running WinGet Configuration ($configFile)..." -ForegroundColor Cyan
 Write-Host "  This will install: Developer Mode, CMake, VS 2022 + required components"
 Write-Host ""
 
-winget configure -f $configPath --accept-configuration-agreements
+winget configure -f "$configPath" --accept-configuration-agreements
 if ($LASTEXITCODE -ne 0)
 {
     Write-Host "WinGet configuration failed." -ForegroundColor Red

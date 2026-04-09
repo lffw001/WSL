@@ -187,6 +187,17 @@ bool wsl::windows::common::security::IsTokenLocalSystem(_In_opt_ HANDLE token)
     return member ? true : false;
 }
 
+bool wsl::windows::common::security::IsElevated()
+{
+    auto token = wil::open_current_access_token(TOKEN_QUERY);
+
+    // IsTokenElevated checks if the integrity level is exactly HIGH.
+    // We must also check for local system because it is above HIGH.
+    // However, IsTokenLocalSystem() does not work correctly and fails.
+    // TODO: Add proper handling for system user callers.
+    return IsTokenElevated(token.get());
+}
+
 wsl::windows::common::security::unique_revert_to_self wsl::windows::common::security::RpcImpersonateCaller(_In_ RPC_BINDING_HANDLE handle)
 {
     THROW_IF_WIN32_ERROR(static_cast<DWORD>(RpcImpersonateClient(handle)));

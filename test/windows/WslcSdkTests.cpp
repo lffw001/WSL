@@ -16,6 +16,7 @@ Abstract:
 #include "Common.h"
 #include "wslcsdk.h"
 #include "wslc_schema.h"
+#include "e2e/WSLCExecutor.h"
 #include <optional>
 
 extern std::wstring g_testDataPath;
@@ -39,6 +40,16 @@ void CloseSession(WslcSession session)
 }
 
 using UniqueSession = wil::unique_any<WslcSession, decltype(CloseSession), CloseSession>;
+
+void ReleaseSession(WslcSession session)
+{
+    if (session)
+    {
+        WslcReleaseSession(session);
+    }
+}
+
+using UniqueSessionRef = wil::unique_any<WslcSession, decltype(ReleaseSession), ReleaseSession>;
 
 void CloseContainer(WslcContainer container)
 {
@@ -263,6 +274,23 @@ class WslcSdkTests
         // Null settings pointer must fail.
         UniqueSession session2;
         VERIFY_ARE_EQUAL(WslcCreateSession(nullptr, &session2, nullptr), E_POINTER);
+    }
+
+    TEST_METHOD(GetCliSession)
+    {
+        WSL2_TEST_ONLY();
+
+        // Null output pointer must fail.
+        VERIFY_ARE_EQUAL(WslcGetCliSession(nullptr, nullptr), E_POINTER);
+
+        // Start the CLI session by running a wslc command.
+        auto result = WSLCE2ETests::RunWslc(L"container list");
+        VERIFY_ARE_EQUAL(result.ExitCode.value(), (DWORD)0);
+
+        // Now WslcGetCliSession should find the running CLI session.
+        UniqueSessionRef session;
+        VERIFY_SUCCEEDED(WslcGetCliSession(&session, nullptr));
+        VERIFY_IS_NOT_NULL(session.get());
     }
 
     TEST_METHOD(TerminationCallbackViaTerminate)

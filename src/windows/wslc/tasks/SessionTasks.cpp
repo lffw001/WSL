@@ -18,6 +18,7 @@ Abstract:
 #include "SessionTasks.h"
 #include "TableOutput.h"
 #include "Task.h"
+#include "WSLCSessionDefaults.h"
 
 using namespace wsl::shared;
 using namespace wsl::shared::string;
@@ -38,7 +39,7 @@ void AttachToSession(CLIExecutionContext& context)
     }
     else
     {
-        sessionId = SessionOptions::GetDefaultSessionName();
+        sessionId = wsl::windows::common::WSLCSessionDefaults::GetDefaultSessionName();
     }
 
     context.ExitCode = SessionService::Attach(sessionId);
@@ -54,7 +55,7 @@ void CreateSession(CLIExecutionContext& context)
         // a non-admin session will fail to create but succeed to open, preventing
         // accidental creation of a non-admin session with admin permissions.
         const auto& sessionName = context.Args.Get<ArgType::Session>();
-        if (!SessionOptions::IsDefaultSessionName(sessionName))
+        if (!wsl::windows::common::WSLCSessionDefaults::IsDefaultSessionName(sessionName))
         {
             context.Data.Add<Data::Session>(SessionService::OpenSession(sessionName));
             return;
@@ -100,7 +101,7 @@ void TerminateSession(CLIExecutionContext& context)
     }
     else
     {
-        sessionId = SessionOptions::GetDefaultSessionName();
+        sessionId = wsl::windows::common::WSLCSessionDefaults::GetDefaultSessionName();
     }
 
     context.ExitCode = SessionService::TerminateSession(sessionId);

@@ -15,23 +15,13 @@ Abstract:
 #include <precomp.h>
 #include "SessionModel.h"
 #include "UserSettings.h"
+#include "WSLCSessionDefaults.h"
 
 namespace wsl::windows::wslc::models {
 
-const wchar_t* SessionOptions::GetDefaultSessionName()
-{
-    return IsElevated() ? s_defaultAdminSessionName : s_defaultSessionName;
-}
-
-bool SessionOptions::IsDefaultSessionName(const std::wstring& sessionName)
-{
-    // Only returns true for the default session name that matches current elevation.
-    return wsl::shared::string::IsEqual(sessionName, GetDefaultSessionName());
-}
-
 SessionOptions::SessionOptions()
 {
-    m_sessionSettings.DisplayName = GetDefaultSessionName();
+    m_sessionSettings.DisplayName = wsl::windows::common::WSLCSessionDefaults::GetDefaultSessionName();
     m_sessionSettings.StoragePath = GetStoragePath().c_str();
     m_sessionSettings.CpuCount = settings::User().Get<settings::Setting::SessionCpuCount>();
     m_sessionSettings.MemoryMb = settings::User().Get<settings::Setting::SessionMemoryMb>();
@@ -49,17 +39,6 @@ SessionOptions::SessionOptions()
     }
 }
 
-bool SessionOptions::IsElevated()
-{
-    auto token = wil::open_current_access_token(TOKEN_QUERY);
-
-    // IsTokenElevated checks if the integrity level is exactly HIGH.
-    // We must also check for local system because it is above HIGH.
-    // However, IsTokenLocalSystem() does not work correctly and fails.
-    // TODO: Add proper handling for system user callers.
-    return wsl::windows::common::security::IsTokenElevated(token.get());
-}
-
 const std::filesystem::path& SessionOptions::GetStoragePath()
 {
     static const std::filesystem::path basePath = []() {
@@ -68,10 +47,12 @@ const std::filesystem::path& SessionOptions::GetStoragePath()
                    : settings::User().Get<settings::Setting::SessionStoragePath>().c_str();
     }();
 
-    static const std::filesystem::path storagePathNonAdmin = basePath / std::wstring{s_defaultSessionName};
-    static const std::filesystem::path storagePathAdmin = basePath / std::wstring{s_defaultAdminSessionName};
+    static const std::filesystem::path storagePathNonAdmin =
+        basePath / std::wstring{wsl::windows::common::WSLCSessionDefaults::defaultSessionName};
+    static const std::filesystem::path storagePathAdmin =
+        basePath / std::wstring{wsl::windows::common::WSLCSessionDefaults::defaultAdminSessionName};
 
-    return IsElevated() ? storagePathAdmin : storagePathNonAdmin;
+    return wsl::windows::common::security::IsElevated() ? storagePathAdmin : storagePathNonAdmin;
 }
 
 } // namespace wsl::windows::wslc::models

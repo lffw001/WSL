@@ -18,6 +18,7 @@ Abstract:
 #include "ProgressCallback.h"
 #include "TerminationCallback.h"
 #include "wslutil.h"
+#include "WSLCSessionDefaults.h"
 
 using namespace std::string_view_literals;
 using namespace wsl::windows::common::wslutil;
@@ -433,6 +434,27 @@ try
     WI_SetFlag(runtimeSettings.FeatureFlags, WslcFeatureFlagsVirtioFs);
 
     if (SUCCEEDED(errorInfoWrapper.CaptureResult(sessionManager->CreateSession(&runtimeSettings, WSLCSessionFlagsNone, &result->session))))
+    {
+        wsl::windows::common::security::ConfigureForCOMImpersonation(result->session.get());
+        *session = reinterpret_cast<WslcSession>(result.release());
+    }
+
+    return errorInfoWrapper;
+}
+CATCH_RETURN();
+
+STDAPI WslcGetCliSession(_Out_ WslcSession* session, _Outptr_opt_result_z_ PWSTR* errorMessage)
+try
+{
+    RETURN_HR_IF_NULL(E_POINTER, session);
+    *session = nullptr;
+    ErrorInfoWrapper errorInfoWrapper{errorMessage};
+
+    wil::com_ptr<IWSLCSessionManager> sessionManager = CreateSessionManager();
+
+    auto result = std::make_unique<WslcSessionImpl>();
+    auto defaultSessionName = wsl::windows::common::WSLCSessionDefaults::GetDefaultSessionName();
+    if (SUCCEEDED(errorInfoWrapper.CaptureResult(sessionManager->OpenSessionByName(defaultSessionName, &result->session))))
     {
         wsl::windows::common::security::ConfigureForCOMImpersonation(result->session.get());
         *session = reinterpret_cast<WslcSession>(result.release());

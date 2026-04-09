@@ -126,6 +126,7 @@ set(HEADERS
     WslCoreMessageQueue.h
     WslCoreNetworkEndpointSettings.h
     WslCoreNetworkingSupport.h
+    WSLCSessionDefaults.h
     WslInstall.h
     WslSecurity.h
     WslTelemetry.h

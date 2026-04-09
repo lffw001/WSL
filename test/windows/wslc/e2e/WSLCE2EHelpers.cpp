@@ -16,6 +16,7 @@ Abstract:
 #include "windows/Common.h"
 #include "WSLCExecutor.h"
 #include "WSLCE2EHelpers.h"
+#include "WSLCSessionDefaults.h"
 #include <JsonUtils.h>
 
 extern std::wstring g_testDataPath;
@@ -323,7 +324,7 @@ void EnsureSessionIsTerminated(const std::wstring& sessionName)
     std::wstring targetSession = sessionName;
     if (targetSession.empty())
     {
-        targetSession = std::wstring{wsl::windows::wslc::models::SessionOptions::GetDefaultSessionName()};
+        targetSession = std::wstring{wsl::windows::common::WSLCSessionDefaults::GetDefaultSessionName()};
     }
 
     auto listResult = RunWslc(L"session list");

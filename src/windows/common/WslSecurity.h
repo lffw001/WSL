@@ -118,6 +118,11 @@ bool IsTokenElevated(_In_ HANDLE token);
 bool IsTokenLocalSystem(_In_opt_ HANDLE token);
 
 /// <summary>
+/// Returns true if the current context is elevated.
+/// </summary>
+bool IsElevated();
+
+/// <summary>
 /// Impersonates the RPC caller
 /// </summary>
 unique_revert_to_self RpcImpersonateCaller(_In_ RPC_BINDING_HANDLE handle);
